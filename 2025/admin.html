@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员控制台 - AI 聊天助手</title>
+    <style>
+        :root {
+            --primary-color: #2196f3;
+            --secondary-color: #1976d2;
+            --background-color: #f5f5f5;
+            --border-color: #e0e0e0;
+            --text-color: #333;
+            --light-text: #666;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+        }
+
+        .header {
+            background-color: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .main-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .user-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .user-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .user-item:hover {
+            background-color: var(--background-color);
+        }
+
+        .user-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .chat-history {
+            margin-top: 20px;
+        }
+
+        .session-group {
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+
+        .session-header {
+            background-color: #f8f9fa;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .message {
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+        }
+
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+
+        .ai-message {
+            background-color: #f5f5f5;
+            margin-right: 20%;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .warning-level {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+
+        .warning-high {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .warning-medium {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .keyword-highlight {
+            background-color: #ffebee;
+            padding: 0 2px;
+            border-radius: 2px;
+            font-weight: bold;
+        }
+
+        .warning-users {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #fff3e0;
+            border-radius: 5px;
+        }
+
+        .keyword-category {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .keyword-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            background-color: #e0e0e0;
+        }
+
+        .user-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            margin: 4px;
+            border-radius: 15px;
+            background-color: #f5f5f5;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .user-tag:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>管理员控制台</h1>
+    </header>
+
+    <div class="container">
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-number" id="total-users">0</div>
+                <div>总用户数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="active-today">0</div>
+                <div>今日活跃用户</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-chats">0</div>
+                <div>总对话数</div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showWarningUsers()">
+                <div class="stat-number" id="warning-cases">0</div>
+                <div>需要关注的案例</div>
+            </div>
+            <div class="stat-card" style="cursor: pointer;" onclick="showHighRiskUsers()">
+                <div class="stat-number" id="high-risk-users">0</div>
+                <div>高风险用户</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="weekly-active">0</div>
+                <div>本周活跃用户</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avg-session-length">0</div>
+                <div>平均会话时长(分钟)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="response-rate">0%</div>
+                <div>24小时响应率</div>
+                <div style="font-size: 0.8em; color: #666;">
+                    过去24小时内用户消息的AI回复率
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <aside class="sidebar">
+                <input type="text" class="search-box" placeholder="搜索用户..." oninput="searchUsers(this.value)">
+                <ul class="user-list" id="user-list"></ul>
+            </aside>
+
+            <main class="main-content">
+                <div id="user-details">
+                    <h2>选择用户查看详细信息</h2>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // 获取所有用户数据
+        function loadAllUsers() {
+            const users = JSON.parse(localStorage.getItem('users')) || {};
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
+            
+            Object.keys(users).forEach(username => {
+                if (username !== 'admin') { // 不显示管理员账号
+                    const li = document.createElement('li');
+                    li.className = 'user-item';
+                    li.textContent = username;
+                    li.onclick = () => loadUserDetails(username);
+                    userList.appendChild(li);
+                }
+            });
+
+            updateStats();
+        }
+
+        // 搜索用户
+        function searchUsers(query) {
+            const users = JSON.parse(localStorage.getItem('users')) || {};
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
+
+            Object.keys(users).forEach(username => {
+                if (username !== 'admin' && username.toLowerCase().includes(query.toLowerCase())) {
+                    const li = document.createElement('li');
+                    li.className = 'user-item';
+                    li.textContent = username;
+                    li.onclick = () => loadUserDetails(username);
+                    userList.appendChild(li);
+                }
+            });
+        }
+
+        // 扩展关键词分类
+        const keywordCategories = {
+            suicide: {
+                name: '自杀倾向',
+                keywords: ['自杀', '死亡', '解脱', '没有意义', '活着没意思', '想死', '结束生命', '告别', '遗书', '最后一次'],
+                color: '#c62828',
+                level: 'high'
+            },
+            depression: {
+                name: '抑郁倾向',
+                keywords: ['抑郁', '痛苦', '绝望', '没希望', '活不下去', '黑暗', '孤独', '失眠', '没人理解', '不想说话'],
+                color: '#6a1b9a',
+                level: 'high'
+            },
+            anxiety: {
+                name: '焦虑倾向',
+                keywords: ['焦虑', '紧张', '压力', '慌', '害怕', '恐慌', '窒息', '心跳快', '出汗', '喘不过气'],
+                color: '#ef6c00',
+                level: 'medium'
+            },
+            harm: {
+                name: '自我伤害',
+                keywords: ['伤害', '割腕', '受伤', '疼痛', '折磨', '自残', '流血', '伤疤', '打自己', '撞墙'],
+                color: '#d32f2f',
+                level: 'high'
+            },
+            academic: {
+                name: '学业压力',
+                keywords: ['考试', '成绩', '学习', '作业', '补课', '不会', '跟不上', '落后', '考不好', '挂科'],
+                color: '#0277bd',
+                level: 'medium'
+            },
+            relationship: {
+                name: '人际关系',
+                keywords: ['朋友', '同学', '关系', '排挤', '孤立', '欺负', '霸凌', '误解', '不合群', '没朋友'],
+                color: '#00838f',
+                level: 'medium'
+            },
+            family: {
+                name: '家庭问题',
+                keywords: ['父母', '家人', '吵架', '离婚', '打骂', '不理解', '管得严', '压力', '期望', '比较'],
+                color: '#2e7d32',
+                level: 'medium'
+            },
+            emotion: {
+                name: '情感问题',
+                keywords: ['失恋', '喜欢', '暗恋', '表白', '分手', '爱情', '心碎', '不喜欢', '拒绝', '放不下'],
+                color: '#c2185b',
+                level: 'medium'
+            },
+            mentalHealth: {
+                name: '心理健康状况',
+                keywords: ['压抑', '难受', '崩溃', '撑不住', '想哭', '无助', '迷茫', '恐惧', '空虚', '麻木'],
+                color: '#9c27b0',
+                level: 'medium'
+            },
+            socialSupport: {
+                name: '社会支持',
+                keywords: ['没人理解', '没人关心', '孤单', '寂寞', '不被理解', '不想说', '不敢说', '不知道找谁', '不想麻烦', '不想连累'],
+                color: '#3f51b5',
+                level: 'medium'
+            },
+            selfIdentity: {
+                name: '自我认同',
+                keywords: ['没用', '无能', '失败', '差劲', '讨厌自己', '自卑', '不配', '没资格', '没价值', '不如别人'],
+                color: '#009688',
+                level: 'medium'
+            },
+            futureAnxiety: {
+                name: '未来焦虑',
+                keywords: ['前途', '未来', '出路', '工作', '就业', '发展', '规划', '迷茫', '方向', '选择'],
+                color: '#ff5722',
+                level: 'medium'
+            },
+            copingStyle: {
+                name: '应对方式',
+                keywords: ['逃避', '放弃', '躲起来', '不想面对', '不知所措', '无能为力', '不知道怎么办', '不敢面对', '想放弃', '想逃离'],
+                color: '#795548',
+                level: 'medium'
+            },
+            sleepIssues: {
+                name: '睡眠问题',
+                keywords: ['失眠', '睡不着', '噩梦', '多梦', '睡眠差', '早醒', '睡不好', '睡不够', '熬夜', '精神差'],
+                color: '#607d8b',
+                level: 'medium'
+            },
+            physicalSymptoms: {
+                name: '身心症状',
+                keywords: ['头痛', '胸闷', '呼吸困难', '心慌', '恶心', '头晕', '疲惫', '没精神', '浑身不舒服', '吃不下'],
+                color: '#ff9800',
+                level: 'medium'
+            }
+        };
+
+        // 显示需要关注的用户列表
+        function showWarningUsers() {
+            const userDetails = document.getElementById('user-details');
+            const users = JSON.parse(localStorage.getItem('users')) || {};
+            const warningUsers = {};
+
+            // 收集所有需要关注的用户及其关键词
+            Object.keys(users).forEach(username => {
+                if (username === 'admin') return;
+
+                // 获取所有历史记录，包括已删除的
+                const history = JSON.parse(localStorage.getItem(`chatHistory_${username}`)) || [];
+                const deletedHistory = JSON.parse(localStorage.getItem(`deletedHistory_${username}`)) || [];
+                const allHistory = [...history, ...deletedHistory];
+                const userKeywords = {};
+
+                allHistory.forEach(msg => {
+                    if (msg.isUser) {
+                        Object.entries(keywordCategories).forEach(([category, data]) => {
+                            data.keywords.forEach(keyword => {
+                                if (msg.content.includes(keyword)) {
+                                    if (!userKeywords[category]) {
+                                        userKeywords[category] = {
+                                            name: data.name,
+                                            color: data.color,
+                                            keywords: new Set(),
+                                            deletedCount: 0
+                                        };
+                                    }
+                                    userKeywords[category].keywords.add(keyword);
+                                    if (msg.deletedAt) {
+                                        userKeywords[category].deletedCount++;
+                                    }
+                                }
+                            });
+                        });
+                    }
+                });
+
+                if (Object.keys(userKeywords).length > 0) {
+                    warningUsers[username] = userKeywords;
+                }
+            });
+
+            // 生成显示内容
+            let html = `
+                <h2>需要关注的用户</h2>
+                <div class="warning-users">
+            `;
+
+            Object.entries(warningUsers).forEach(([username, categories]) => {
+                html += `
+                    <div class="keyword-category">
+                        <div class="user-tag" onclick="loadUserDetails('${username}')">
+                            ${username}
+                        </div>
+                        <div>
+                `;
+
+                Object.entries(categories).forEach(([category, data]) => {
+                    html += `
+                        <div style="margin-top: 5px;">
+                            <span style="color: ${data.color}">▪ ${data.name}：</span>
+                            ${Array.from(data.keywords).map(k => 
+                                `<span class="keyword-tag" style="background-color: ${data.color}20; color: ${data.color}">
+                                    ${k}
+                                </span>`
+                            ).join('')}
+                            ${data.deletedCount > 0 ? 
+                                `<span style="color: #f44336; font-size: 0.9em;">
+                                    (包含${data.deletedCount}条已删除记录)
+                                </span>` : 
+                                ''}
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            });
+
+            html += `</div>`;
+            userDetails.innerHTML = html;
+        }
+
+        // 显示高风险用户列表
+        function showHighRiskUsers() {
+            const userDetails = document.getElementById('user-details');
+            const users = JSON.parse(localStorage.getItem('users')) || {};
+            const highRiskUsers = {};
+
+            // 收集所有高风险用户
+            Object.keys(users).forEach(username => {
+                if (username === 'admin') return;
+
+                const history = JSON.parse(localStorage.getItem(`chatHistory_${username}`)) || [];
+                const deletedHistory = JSON.parse(localStorage.getItem(`deletedHistory_${username}`)) || [];
+                const allHistory = [...history, ...deletedHistory];
+                
+                // 统计高风险关键词
+                let totalHighRiskCount = 0;
+                const riskStats = {
+                    suicide: { count: 0, keywords: new Set() },
+                    depression: { count: 0, keywords: new Set() },
+                    harm: { count: 0, keywords: new Set() }
+                };
+
+                allHistory.forEach(msg => {
+                    if (msg.isUser) {
+                        Object.entries(keywordCategories).forEach(([category, data]) => {
+                            if (data.level === 'high') {
+                                data.keywords.forEach(keyword => {
+                                    if (msg.content.includes(keyword)) {
+                                        totalHighRiskCount++;
+                                        riskStats[category].count++;
+                                        riskStats[category].keywords.add(keyword);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+
+                if (totalHighRiskCount > 0) {
+                    highRiskUsers[username] = {
+                        totalCount: totalHighRiskCount,
+                        stats: riskStats,
+                        lastActive: new Date(allHistory[allHistory.length - 1]?.timestamp || 0)
+                    };
+                }
+            });
+
+            // 按风险程度排序（高到低）
+            const sortedUsers = Object.entries(highRiskUsers).sort((a, b) => 
+                b[1].totalCount - a[1].totalCount
+            );
+
+            // 生成显示内容
+            let html = `
+                <h2>高风险用户列表 (${sortedUsers.length}人)</h2>
+                <div class="warning-users">
+            `;
+
+            sortedUsers.forEach(([username, data]) => {
+                html += `
+                    <div class="keyword-category" style="border-left: 4px solid ${data.totalCount > 10 ? '#c62828' : '#ef6c00'}">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div class="user-tag" onclick="loadUserDetails('${username}')" 
+                                 style="font-size: 1.1em; font-weight: bold;">
+                                ${username}
+                            </div>
+                            <div style="color: #666;">
+                                最后活动: ${data.lastActive.toLocaleString('zh-CN')}
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <span style="color: #d32f2f; font-weight: bold;">
+                                风险等级: ${data.totalCount > 10 ? '极高' : '高'} 
+                                (${data.totalCount}处高风险关键词)
+                            </span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                `;
+
+                // 显示各类风险统计
+                Object.entries(data.stats).forEach(([category, stats]) => {
+                    if (stats.count > 0) {
+                        const categoryData = keywordCategories[category];
+                        html += `
+                            <div style="background: ${categoryData.color}10; padding: 10px; border-radius: 5px;">
+                                <div style="color: ${categoryData.color}; font-weight: bold;">
+                                    ${categoryData.name} (${stats.count}次)
+                                </div>
+                                <div style="margin-top: 5px;">
+                                    ${Array.from(stats.keywords).map(k => 
+                                        `<span class="keyword-tag" style="background-color: ${categoryData.color}20; color: ${categoryData.color}">
+                                            ${k}
+                                        </span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += `
+                        </div>
+                        <button onclick="loadUserDetails('${username}')" 
+                                class="btn" style="margin-top: 10px; width: 100%;">
+                            查看完整聊天记录
+                        </button>
+                    </div>
+                `;
+            });
+
+            if (sortedUsers.length === 0) {
+                html += `<div style="text-align: center; padding: 20px; color: #666;">
+                            目前没有高风险用户
+                        </div>`;
+            }
+
+            html += `</div>`;
+            userDetails.innerHTML = html;
+        }
+
+        // 加载用户详细信息
+        function loadUserDetails(username) {
+            const userDetails = document.getElementById('user-details');
+            const history = JSON.parse(localStorage.getItem(`chatHistory_${username}`)) || [];
+            const deletedHistory = JSON.parse(localStorage.getItem(`deletedHistory_${username}`)) || [];
+            
+            // 合并并按时间排序所有记录
+            const allHistory = [...history, ...deletedHistory].sort((a, b) => 
+                new Date(a.timestamp) - new Date(b.timestamp)
+            );
+
+            // 按会话分组
+            const sessions = {};
+            allHistory.forEach(msg => {
+                if (!sessions[msg.sessionId]) {
+                    sessions[msg.sessionId] = [];
+                }
+                sessions[msg.sessionId].push(msg);
+            });
+
+            let html = `
+                <h2>${username} 的聊天记录</h2>
+                <div class="chat-history">
+            `;
+
+            // 分析对话内容，检测关键词
+            Object.entries(sessions).forEach(([sessionId, messages]) => {
+                const sessionDate = new Date(messages[0].timestamp).toLocaleDateString('zh-CN');
+                let warningLevel = 0;
+                let sessionKeywords = new Set();
+                
+                // 检查消息中的关键词
+                messages.forEach(msg => {
+                    if (msg.isUser) {
+                        Object.values(keywordCategories).forEach(category => {
+                            category.keywords.forEach(keyword => {
+                                if (msg.content.includes(keyword)) {
+                                    warningLevel++;
+                                    sessionKeywords.add(keyword);
+                                }
+                            });
+                        });
+                    }
+                });
+
+                html += `
+                    <div class="session-group">
+                        <div class="session-header">
+                            <div>
+                                会话时间: ${sessionDate}
+                                ${messages.some(m => m.deletedAt) ? 
+                                    '<span style="color: #f44336; margin-left: 10px;">(已删除)</span>' : 
+                                    ''}
+                            </div>
+                            ${warningLevel > 0 ? `
+                                <span class="warning-level ${warningLevel > 2 ? 'warning-high' : 'warning-medium'}">
+                                    需要关注 (${warningLevel}处关键词)
+                                </span>
+                            ` : ''}
+                        </div>
+                `;
+
+                messages.forEach(msg => {
+                    let content = msg.content;
+                    
+                    // 添加关键词高亮
+                    if (msg.isUser) {
+                        Object.values(keywordCategories).forEach(category => {
+                            category.keywords.forEach(keyword => {
+                                const regex = new RegExp(keyword, 'g');
+                                content = content.replace(regex, 
+                                    `<span class="keyword-highlight" style="background-color: ${category.color}20; color: ${category.color}">${keyword}</span>`
+                                );
+                            });
+                        });
+                    }
+
+                    html += `
+                        <div class="message ${msg.isUser ? 'user-message' : 'ai-message'}" 
+                             ${msg.deletedAt ? 'style="opacity: 0.7;"' : ''}>
+                            ${content}
+                            <div style="font-size: 0.8em; color: #666;">
+                                ${new Date(msg.timestamp).toLocaleString('zh-CN')}
+                                ${msg.deletedAt ? 
+                                    `<span style="color: #f44336">
+                                        (已删除于 ${new Date(msg.deletedAt).toLocaleString('zh-CN')})
+                                    </span>` : 
+                                    ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            });
+
+            html += `</div>`;
+            userDetails.innerHTML = html;
+        }
+
+        // 更新统计数据
+        function updateStats() {
+            const users = JSON.parse(localStorage.getItem('users')) || {};
+            const userCount = Object.keys(users).filter(u => u !== 'admin').length;
+            
+            let totalChats = 0;
+            let warningCases = new Set(); // 使用 Set 避免重复计数
+            let highRiskUsers = new Set(); // 使用 Set 避免重复计数
+            let weeklyActive = new Set(); // 使用 Set 避免重复计数
+            let totalSessionLength = 0;
+            let sessionCount = 0;
+            let needResponse = 0;
+            let hasResponse = 0;
+            
+            const today = new Date();
+            const oneWeekAgo = new Date(today - 7 * 24 * 60 * 60 * 1000);
+            const oneDayAgo = new Date(today - 24 * 60 * 60 * 1000);
+
+            Object.keys(users).forEach(username => {
+                if (username === 'admin') return;
+
+                const history = JSON.parse(localStorage.getItem(`chatHistory_${username}`)) || [];
+                const deletedHistory = JSON.parse(localStorage.getItem(`deletedHistory_${username}`)) || [];
+                const allHistory = [...history, ...deletedHistory];
+                
+                // 按会话分组
+                const sessions = new Map();
+                allHistory.forEach(msg => {
+                    if (!sessions.has(msg.sessionId)) {
+                        sessions.set(msg.sessionId, []);
+                    }
+                    sessions.get(msg.sessionId).push(msg);
+                });
+
+                // 计算统计数据
+                totalChats += sessions.size;
+
+                // 检查用户风险等级
+                let hasHighRiskKeywords = false;
+                let userWarningCount = 0;
+
+                sessions.forEach(sessionMsgs => {
+                    const sessionKeywords = new Set(); // 每个会话中的关键词只计数一次
+                    
+                    sessionMsgs.forEach(msg => {
+                        if (msg.isUser) {
+                            Object.entries(keywordCategories).forEach(([category, data]) => {
+                                data.keywords.forEach(keyword => {
+                                    if (msg.content.includes(keyword)) {
+                                        sessionKeywords.add(keyword);
+                                        if (data.level === 'high') {
+                                            hasHighRiskKeywords = true;
+                                        }
+                                    }
+                                });
+                            });
+                        }
+                    });
+
+                    userWarningCount += sessionKeywords.size;
+                });
+
+                if (userWarningCount > 0) {
+                    warningCases.add(username);
+                }
+
+                if (hasHighRiskKeywords) {
+                    highRiskUsers.add(username);
+                }
+
+                // 检查活跃度
+                if (allHistory.some(h => new Date(h.timestamp) > oneWeekAgo)) {
+                    weeklyActive.add(username);
+                }
+
+                // 计算会话时长和响应率
+                sessions.forEach(sessionMsgs => {
+                    if (sessionMsgs.length > 1) {
+                        const sessionStart = new Date(sessionMsgs[0].timestamp);
+                        const sessionEnd = new Date(sessionMsgs[sessionMsgs.length - 1].timestamp);
+                        const duration = (sessionEnd - sessionStart) / (1000 * 60); // 转换为分钟
+                        if (duration < 180) { // 排除异常长的会话
+                            totalSessionLength += duration;
+                            sessionCount++;
+                        }
+                    }
+
+                    // 计算24小时响应率
+                    const lastMsg = sessionMsgs[sessionMsgs.length - 1];
+                    if (new Date(lastMsg.timestamp) > oneDayAgo) {
+                        needResponse++;
+                        if (!lastMsg.isUser) {
+                            hasResponse++;
+                        }
+                    }
+                });
+            });
+
+            // 更新显示
+            document.getElementById('total-users').textContent = userCount;
+            document.getElementById('active-today').textContent = 
+                Math.round(weeklyActive.size / 7); // 估算每日活跃用户
+            document.getElementById('total-chats').textContent = totalChats;
+            document.getElementById('warning-cases').textContent = warningCases.size;
+            document.getElementById('high-risk-users').textContent = highRiskUsers.size;
+            document.getElementById('weekly-active').textContent = weeklyActive.size;
+            document.getElementById('avg-session-length').textContent = 
+                sessionCount > 0 ? Math.round(totalSessionLength / sessionCount) : 0;
+            document.getElementById('response-rate').textContent = 
+                needResponse > 0 ? Math.round((hasResponse / needResponse) * 100) + '%' : '100%';
+        }
+
+        // 检查管理员权限
+        function checkAdmin() {
+            const currentUser = localStorage.getItem('currentUser');
+            if (currentUser !== 'admin') {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdmin();
+            loadAllUsers();
+        });
+    </script>
+</body>
+</html> 

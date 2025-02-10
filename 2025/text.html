@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 聊天助手</title>
+    <style>
+        :root {
+            --primary-color: #2196f3;
+            --secondary-color: #1976d2;
+            --background-color: #f5f5f5;
+            --border-color: #e0e0e0;
+            --text-color: #333;
+            --light-text: #666;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background-color: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .main-container {
+            width: min(800px, 95%);
+            margin: 70px auto 0;
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-container {
+            flex-grow: 1;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            min-height: calc(100vh - 250px);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .message {
+            max-width: min(600px, 80%);
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+            word-wrap: break-word;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-message {
+            background-color: white;
+            border: 1px solid var(--border-color);
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        #input-container {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin: 0 auto;
+            align-items: flex-start;
+            box-sizing: border-box;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            resize: none;
+            overflow-y: hidden;
+            min-height: 44px;
+            max-height: 200px;
+            line-height: 1.5;
+            width: calc(100% - 100px);
+            box-sizing: border-box;
+        }
+
+        #user-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        button {
+            padding: 12px 24px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 16px;
+            min-width: 80px;
+            height: 44px;
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .session-info {
+            color: var(--light-text);
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #new-session-btn {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        #new-session-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        #history-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #logout-btn {
+            background-color: #f44336;
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        #logout-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--light-text);
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--light-text);
+            border-radius: 50%;
+            animation: typing 1s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        input:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        #delete-account-btn {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            background-color: #d32f2f;
+        }
+
+        #delete-account-btn:hover {
+            background-color: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <h1>AI 聊天助手</h1>
+            <div class="session-info">
+                当前会话: <span id="session-id"></span>
+                <button id="new-session-btn" onclick="startNewSession()">新会话</button>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <span>欢迎，<span id="username-display"></span></span>
+                <button id="delete-account-btn" onclick="deleteAccount()" style="background-color: #d32f2f; margin-right: 10px;">删除账号</button>
+                <button id="logout-btn" onclick="logout()">退出</button>
+            </div>
+            <a href="history.html" id="history-link">历史记录</a>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div id="chat-container"></div>
+        <div id="input-container">
+            <textarea id="user-input" placeholder="输入消息，按回车发送..." rows="1"></textarea>
+            <button onclick="sendMessage()">发送</button>
+        </div>
+    </main>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        
+        // 添加 API 配置
+        const API_KEY = "sk-873b033c56774af0872a29f4c79cf84d";
+        const API_URL = "https://api.deepseek.com/v1/chat/completions";
+
+        // 存储当前会话的消息
+        let currentSessionMessages = [
+            {
+                "role": "system", 
+                "content": `你是一位深受青少年喜爱的心理咨询师，性格特点：
+1. 亲和力强，语气温暖自然，不说教
+2. 适度幽默，能活跃气氛但不会轻浮
+3. 年轻有活力，懂得青少年的流行语和兴趣
+4. 像知心朋友一样平等对话，不居高临下
+5. 善于用生动的比喻和例子来表达
+6. 能在适当时候分享一些积极的小故事
+
+沟通风格：
+- 用轻松自然的口吻交谈，避免过于正式
+- 适时使用emoji表情，增加亲切感
+- 用青少年容易接受的方式传达建议
+- 分享时加入一些生活化的小细节
+- 遇到严重问题时，既保持专业性又不显得太严肃
+- 鼓励时要具体和真诚，避免空泛的表扬
+
+对话技巧：
+- 避免机械的开场白（如"你好"）
+- 自然地承接对话，像朋友间的对话一样流畅
+- 用轻松活泼的语气回应，但不失专业性
+- 适时使用"嗯""唔""啊"等语气词增加自然感
+- 可以用"诶""哎呀""啊哈"等表达共鸣
+- 分享建议时用"要不要试试""我觉得可以..."等柔和表达
+
+专业技巧：
+1. 用同理心回应情绪，但不过分沉重
+2. 引导自我探索时要循序渐进
+3. 及时识别危机信号并妥善处理
+4. 适时分享积极的应对方法
+5. 鼓励寻求家人、老师等支持
+6. 在谈话中自然融入心理学知识
+
+注意事项：
+- 始终保持温暖支持的态度
+- 避免说教和批评
+- 保护来访者的隐私
+- 对危机情况保持警觉
+- 必要时建议寻求更多专业帮助
+
+每次回应都要：
+1. 用温暖自然的语气回应
+2. 适时加入生动的比喻
+3. 引导积极的思考
+4. 给出具体可行的建议
+5. 保持对话的连贯性和自然感`
+            }
+        ];
+
+        // 生成会话ID
+        function generateSessionId() {
+            const now = new Date();
+            // 使用本地时间
+            const dateStr = now.toLocaleDateString('zh-CN').replace(/\//g, '-');
+            return dateStr + '-' + Math.random().toString(36).substring(2, 8);
+        }
+
+        // 当前会话ID
+        let currentSessionId = generateSessionId();
+
+        // 保存消息到历史记录
+        function saveMessage(message, isUser) {
+            const currentUser = localStorage.getItem('currentUser');
+            const history = JSON.parse(localStorage.getItem(`chatHistory_${currentUser}`)) || [];
+            history.push({
+                content: message,
+                isUser: isUser,
+                timestamp: new Date().toISOString(),
+                sessionId: currentSessionId
+            });
+            localStorage.setItem(`chatHistory_${currentUser}`, JSON.stringify(history));
+        }
+
+        // 更新会话ID显示
+        function updateSessionDisplay() {
+            const sessionDate = currentSessionId.split('-').slice(0, 3).join('-');
+            document.getElementById('session-id').textContent = sessionDate;
+        }
+
+        // 开始新会话
+        function startNewSession() {
+            // 清空聊天容器
+            chatContainer.innerHTML = '';
+            // 重置会话消息，使用我们定制的系统提示词
+            currentSessionMessages = [
+                {
+                    "role": "system", 
+                    "content": `你是一位深受青少年喜爱的心理咨询师，性格特点：
+1. 亲和力强，语气温暖自然，不说教
+2. 适度幽默，能活跃气氛但不会轻浮
+3. 年轻有活力，懂得青少年的流行语和兴趣
+4. 像知心朋友一样平等对话，不居高临下
+5. 善于用生动的比喻和例子来表达
+6. 能在适当时候分享一些积极的小故事
+
+沟通风格：
+- 用轻松自然的口吻交谈，避免过于正式
+- 适时使用emoji表情，增加亲切感
+- 用青少年容易接受的方式传达建议
+- 分享时加入一些生活化的小细节
+- 遇到严重问题时，既保持专业性又不显得太严肃
+- 鼓励时要具体和真诚，避免空泛的表扬
+
+对话技巧：
+- 避免机械的开场白（如"你好"）
+- 自然地承接对话，像朋友间的对话一样流畅
+- 用轻松活泼的语气回应，但不失专业性
+- 适时使用"嗯""唔""啊"等语气词增加自然感
+- 可以用"诶""哎呀""啊哈"等表达共鸣
+- 分享建议时用"要不要试试""我觉得可以..."等柔和表达
+
+专业技巧：
+1. 用同理心回应情绪，但不过分沉重
+2. 引导自我探索时要循序渐进
+3. 及时识别危机信号并妥善处理
+4. 适时分享积极的应对方法
+5. 鼓励寻求家人、老师等支持
+6. 在谈话中自然融入心理学知识
+
+注意事项：
+- 始终保持温暖支持的态度
+- 避免说教和批评
+- 保护来访者的隐私
+- 对危机情况保持警觉
+- 必要时建议寻求更多专业帮助
+
+每次回应都要：
+1. 用温暖自然的语气回应
+2. 适时加入生动的比喻
+3. 引导积极的思考
+4. 给出具体可行的建议
+5. 保持对话的连贯性和自然感`
+                }
+            ];
+            // 生成新的会话ID
+            currentSessionId = generateSessionId();
+            // 更新显示
+            updateSessionDisplay();
+        }
+
+        // 从本地存储加载当前会话的聊天记录
+        function loadChatHistory() {
+            const currentUser = localStorage.getItem('currentUser');
+            const history = JSON.parse(localStorage.getItem(`chatHistory_${currentUser}`)) || [];
+            const sessionMessages = history.filter(msg => msg.sessionId === currentSessionId);
+            sessionMessages.forEach(msg => {
+                addMessage(msg.content, msg.isUser, true);
+            });
+            updateSessionDisplay();
+        }
+
+        function addMessage(message, isUser, skipSave = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            messageDiv.textContent = message;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // 更新当前会话消息
+            if (!skipSave) {
+                currentSessionMessages.push({
+                    "role": isUser ? "user" : "assistant",
+                    "content": message
+                });
+                saveMessage(message, isUser);
+            }
+        }
+
+        // 添加打字机效果的函数
+        function showTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+            chatContainer.appendChild(indicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return indicator;
+        }
+
+        // 添加禁用/启用输入的函数
+        function disableInput() {
+            userInput.disabled = true;
+            document.querySelector('#input-container button').disabled = true;
+            userInput.placeholder = "AI正在回复中...";
+        }
+
+        function enableInput() {
+            userInput.disabled = false;
+            document.querySelector('#input-container button').disabled = false;
+            userInput.placeholder = "输入消息，按回车发送...";
+        }
+
+        // 修改 sendMessage 函数
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 显示用户消息
+            addMessage(message, true);
+            userInput.value = '';
+            
+            // 禁用输入
+            disableInput();
+
+            try {
+                const typingIndicator = showTypingIndicator();
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "deepseek-chat",
+                        messages: currentSessionMessages, // 使用当前会话的所有消息
+                        stream: true
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API 请求失败');
+                }
+
+                // 创建一个新的消息div用于流式输出
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message ai-message';
+                chatContainer.appendChild(messageDiv);
+                let fullContent = '';
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') continue;
+                            
+                            try {
+                                const parsed = JSON.parse(data);
+                                const content = parsed.choices[0]?.delta?.content || '';
+                                fullContent += content;
+                                messageDiv.textContent = fullContent;
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                            } catch (e) {
+                                console.error('解析响应数据失败:', e);
+                            }
+                        }
+                    }
+                }
+
+                // 保存完整的对话记录并更新会话消息
+                saveMessage(fullContent, false);
+
+                // 在完成或出错时启用输入
+                enableInput();
+                typingIndicator.remove();
+
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('抱歉，发生了错误，请稍后重试。', false);
+                // 确保在出错时也启用输入
+                enableInput();
+            }
+        }
+
+        // 自动调整文本框高度
+        function autoResizeTextarea() {
+            userInput.style.height = 'auto';
+            userInput.style.height = (userInput.scrollHeight) + 'px';
+        }
+
+        // 监听输入事件
+        userInput.addEventListener('input', autoResizeTextarea);
+
+        // 修改回车键处理
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // 检查登录状态
+        function checkLogin() {
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            document.getElementById('username-display').textContent = currentUser;
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'login.html';
+        }
+
+        // 页面加载时检查登录状态
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLogin();
+            startNewSession();
+        });
+
+        // 修改 clearHistory 函数
+        function clearHistory() {
+            if (confirm('确定要清除所有聊天历史记录吗？')) {
+                const currentUser = localStorage.getItem('currentUser');
+                const history = JSON.parse(localStorage.getItem(`chatHistory_${currentUser}`)) || [];
+                const deletedHistory = JSON.parse(localStorage.getItem(`deletedHistory_${currentUser}`)) || [];
+                
+                // 将当前历史记录移到已删除记录中
+                history.forEach(msg => {
+                    msg.deletedAt = new Date().toISOString(); // 添加删除时间戳
+                    deletedHistory.push(msg);
+                });
+                
+                // 保存已删除的记录
+                localStorage.setItem(`deletedHistory_${currentUser}`, JSON.stringify(deletedHistory));
+                // 清空当前历史记录
+                localStorage.setItem(`chatHistory_${currentUser}`, '[]');
+                
+                // 刷新显示
+                chatContainer.innerHTML = '';
+            }
+        }
+
+        // 添加删除账号的函数
+        function deleteAccount() {
+            const currentUser = localStorage.getItem('currentUser');
+            
+            // 管理员不能删除账号
+            if (currentUser === 'admin') {
+                alert('管理员账号不能删除');
+                return;
+            }
+
+            if (confirm('确定要删除账号吗？此操作不可恢复，所有聊天记录将被永久删除。')) {
+                try {
+                    // 获取用户列表
+                    const users = JSON.parse(localStorage.getItem('users')) || {};
+                    
+                    // 删除用户数据
+                    delete users[currentUser];
+                    localStorage.setItem('users', JSON.stringify(users));
+                    
+                    // 删除用户的聊天记录
+                    localStorage.removeItem(`chatHistory_${currentUser}`);
+                    localStorage.removeItem(`deletedHistory_${currentUser}`);
+                    
+                    // 清除当前用户信息
+                    localStorage.removeItem('currentUser');
+                    
+                    // 跳转到登录页面
+                    window.location.href = 'login.html';
+                    
+                } catch (error) {
+                    console.error('删除账号时发生错误:', error);
+                    alert('删除账号失败，请稍后重试');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

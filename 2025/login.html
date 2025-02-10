@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - AI 聊天助手</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .login-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2196f3;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #1976d2;
+        }
+        .switch-form {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .error-message {
+            color: #f44336;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>AI 聊天助手</h1>
+        <form id="loginForm" onsubmit="return handleLogin(event)">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="btn">登录</button>
+            <div class="error-message" id="error-message"></div>
+        </form>
+        <div class="switch-form">
+            <a href="#" onclick="toggleForm()">没有账号？立即注册</a>
+        </div>
+    </div>
+
+    <script>
+        // 初始化管理员账号
+        function initAdminAccount() {
+            const users = JSON.parse(localStorage.getItem('users')) || {};
+            if (!users.admin) {
+                users.admin = {
+                    password: 'admin123', // 默认管理员密码
+                    role: 'admin',
+                    settings: {
+                        theme: 'light',
+                        fontSize: 'medium'
+                    }
+                };
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+        }
+
+        let isLoginForm = true;
+
+        function toggleForm() {
+            const form = document.getElementById('loginForm');
+            const title = document.querySelector('h1');
+            const submitBtn = form.querySelector('button');
+            const switchLink = document.querySelector('.switch-form a');
+            const errorMessage = document.getElementById('error-message');
+            
+            isLoginForm = !isLoginForm;
+            errorMessage.textContent = '';
+            
+            if (isLoginForm) {
+                title.textContent = 'AI 聊天助手';
+                submitBtn.textContent = '登录';
+                switchLink.textContent = '没有账号？立即注册';
+            } else {
+                title.textContent = '注册新账号';
+                submitBtn.textContent = '注册';
+                switchLink.textContent = '已有账号？立即登录';
+            }
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+
+            // 从 localStorage 获取用户数据
+            const users = JSON.parse(localStorage.getItem('users')) || {};
+
+            if (isLoginForm) {
+                // 登录逻辑
+                if (users[username] && users[username].password === password) {
+                    // 登录成功
+                    localStorage.setItem('currentUser', username);
+                    // 根据用户角色跳转到不同页面
+                    if (username === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'text.html';
+                    }
+                } else {
+                    errorMessage.textContent = '用户名或密码错误';
+                }
+            } else {
+                // 注册逻辑
+                // 检查密码长度
+                if (password.length < 6) {
+                    errorMessage.textContent = '密码长度至少需要6位';
+                    return false;
+                }
+
+                if (username === 'admin') {
+                    errorMessage.textContent = '不能注册管理员账号';
+                    return false;
+                }
+                
+                if (users[username]) {
+                    errorMessage.textContent = '用户名已存在';
+                    return false;
+                }
+
+                // 创建新用户
+                users[username] = {
+                    password: password,
+                    role: 'user',
+                    settings: {
+                        theme: 'light',
+                        fontSize: 'medium'
+                    }
+                };
+                localStorage.setItem('users', JSON.stringify(users));
+                localStorage.setItem('currentUser', username);
+                window.location.href = 'text.html';
+            }
+
+            return false;
+        }
+
+        // 页面加载时检查并初始化管理员账号
+        window.addEventListener('DOMContentLoaded', () => {
+            initAdminAccount();
+            const currentUser = localStorage.getItem('currentUser');
+            if (currentUser) {
+                if (currentUser === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'text.html';
+                }
+            }
+        });
+    </script>
+</body>
+</html> 
